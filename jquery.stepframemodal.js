@@ -1,7 +1,7 @@
 /**
- *  jQuery.steframeModal (Version: 1.0)
+ *  jQuery.stepModal (Version: 1.0)
  *
- *  https://github.com/stepframe/jquery-stepframemodal
+ *  https://github.com/stepframe/jquery-stepModal
  *
  *  The MIT License (MIT)
  *  Copyright (c) 2013, Stepframe Interactive Media
@@ -46,7 +46,7 @@ extend to dialog - title, content, and class, button options
 */
 
 (function($){
-	var stepframeModal = function(options) {
+	var stepModal = function(options) {
 		var sffadeInEffect = function(content, delay) {
 			content.hide();
 			var delayTime = modPop.opts.contentAnimationDelay;
@@ -301,9 +301,9 @@ extend to dialog - title, content, and class, button options
 
 	}
  
-	$.fn.setupModal = function(options){
+	$.fn.setupStepModal = function(options){
 		return this.each(function(){
-			var modPop = new stepframeModal(options);
+			var modPop = new stepModal(options);
 			modPop.eventObject = $(this);
 			$(this).click(function(e) {
 				modPop.showModal(this);
@@ -311,8 +311,8 @@ extend to dialog - title, content, and class, button options
 		});
 	}
  
-	$.fn.showModal = function(options){
-		var modPop = new stepframeModal(options);
+	$.fn.showStepModal = function(options){
+		var modPop = new stepModal(options);
 
 		return this.each(function(){		
 			modPop.showModal(this);
@@ -320,4 +320,4 @@ extend to dialog - title, content, and class, button options
 	}
 
 
-})(jQuery);
+})( jQuery);

@@ -1,4 +1,4 @@
-jquery-steframeModal
+jquery-stepModal
 ================
 #### (Modal content display)
 
