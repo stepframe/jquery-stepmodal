@@ -23,7 +23,7 @@
 	.popup {
 	  background: none repeat scroll 0 0 rgba(0, 0, 0, 0.8);
 	  display: table;
-	  height: 100%;
+	  height: 100%; 
 	  left: 0;
 	  opacity: 0;
 	  position: fixed;
@@ -33,11 +33,98 @@
 	  vertical-align: middle;
 	}
 
+
+remove the background from the page html and move it to the module to create programmatic
+remove the close button, and create it programmatically
+
+have separate animation options for background and content
+
+send 2 functions in to the custom transition option (in and out)
+
+extend to dialog - title, content, and class, button options
+
 */
 
 (function($){
 	var stepframeModal = function(options) {
+		var sffadeInEffect = function(content, delay) {
+			content.hide();
+			var delayTime = modPop.opts.contentAnimationDelay;
+			if (!delay) {
+				delayTime = 0;
+			} 
+			setTimeout(function(){
+				content.fadeIn(modPop.opts.transitionInTime);
+			}, delayTime)
+
+			
+		}
+
+		var sfslideDownEffect = function(content) {
+			var contentPos = content.css('position');
+			if (!contentPos || contentPos == "static") {content.css('position', 'relative')}
+			content.css('top', -1 * modPop.popContainer.height() + 'px');
+			
+
+
+			var delayTime = modPop.opts.contentAnimationDelay;
+			if (!delay) {
+				delayTime = 0;
+			} 
+			setTimeout(function(){
+				content.animate({'top': 0}, modPop.opts.transitionInTime);
+			}, delayTime)
+
+		}
+		
+		var sffadeOutEffect = function(content, delay) {
+			this.logMsg('fade out');
+			var delayTime = modPop.opts.contentAnimationDelay;
+			if (!delay) {delayTime = 0;} 
+
+			setTimeout(function(){
+				content.fadeOut(modPop.opts.transitionOutTime);
+			}, delayTime)
+		}
+
+		var sfslideUpEffect = function(content) {
+			var contentPos = content.css('position');
+			if (!contentPos || contentPos == "static") {content.css('position', 'relative')}
+			
+
+			var delayTime = modPop.opts.contentAnimationDelay;
+			if (!delay) {delayTime = 0;} 
+
+			setTimeout(function(){
+				content.animate({'top': -1.5 * modPop.popContainer.height()}, modPop.opts.transitionOutTime);
+			}, delayTime)
+		}
+
+		var sfshowInEffect = function(content) {
+			var delayTime = modPop.opts.contentAnimationDelay;
+			if (!delay) {delayTime = 0;} 
+
+			setTimeout(function(){
+				content.show();
+			}, delayTime)
+
+			
+		}
+
+		var sfshowOutEffect = function(content) {
+			var delayTime = modPop.opts.contentAnimationDelay;
+			if (!delay) {delayTime = 0;} 
+
+			setTimeout(function(){
+				content.hide();
+			}, delayTime)
+		}
+
+
 		var modPop = this;
+		this.eventObject = false;
+		this.popContainer = false;
+		this.contents = false;
 		this.transitionsIn = {
 			'fade': sffadeInEffect,
 			'slideDown': sfslideDownEffect,
@@ -50,17 +137,22 @@
 		}
 
 		this.opts = {
-			id: 'popMod',
 			debug: false,
 			transition: 'fade',
 			transitionIn: 'fade',
 			transitionOut: 'fade',
 			closeSelector: ".modal-close",
-			modalClassSelect: 'sfModalClass',
 			transitionInTime: 'slow',
 			transitionOutTime: 'fast',
 			dataAttribute: 'modaltarget',
-			modal: true
+			modal: true,
+			modalClass: 'stepModal',
+			appendSelector: 'body',
+			backgroundTransitionSpeed: 'fast',
+			contentAnimationDelay: 250,
+			delayBackgroundAnimation: true,
+			onOpen: false,
+			onClose: false
 		}
 		
 		if (options) {
@@ -72,27 +164,59 @@
 			}
 		}
 
+		if (this.opts.transition && typeof(this.opts.transition) == "object" && this.opts.transition.length == 2) {
+			this.opts.transitionIn = this.opts.transition[0];
+			this.opts.transitionOut = this.opts.transition[1];
+		} 
 
 		if (this.opts.transitionIn && typeof(this.opts.transitionIn) == "function") {
 			this.transitionIn = this.opts.transitionIn;
 		} else {
 			this.transitionIn = this.transitionsIn[this.opts.transitionIn];	
 		}
-		if (this.transitionIn == undefined) {this.transitionIn = fadeInEffect;}
+		if (this.transitionIn == undefined) {this.transitionIn = sffadeInEffect;}
 
 		if (this.opts.transitionOut && typeof(this.opts.transitionOut) == "function") {
 			this.transitionOut = this.opts.transitionOut;
 		} else {
 			this.transitionOut = this.transitionsOut[this.opts.transitionOut];
 		}
-		if (this.transitionOut == undefined) {this.transitionOut = fadeOutEffect;}
+		if (this.transitionOut == undefined) {this.transitionOut = sffadeOutEffect;}
+
+		this.showBackground = function() {
+			modPop.popContainer.fadeIn(modPop.opts.backgroundTransitionSpeed, function() {if (modPop.opts.onOpen) {modPop.opts.onOpen(modPop.contents);} modPop.triggerEvent("sfModalOpen");});
+		}
+
+		this.hideBackground = function(delay) {
+			var delayTime = modPop.opts.contentAnimationDelay;
+			if (!delay) {
+				delayTime = 0;
+			} 
+			
+			setTimeout(function(){
+				modPop.popContainer.fadeOut(modPop.opts.backgroundTransitionSpeed);
+				if (modPop.opts.onClose) {modPop.opts.onClose(modPop.contents);} 
+				modPop.triggerEvent("sfModalClose");
+			}, delayTime)
+
+		}
 
 		this.hideModal = function() {
-			if (modPop.opts.debug) {window.console && console.log('hide modal')}
-			var content = $('.' + modPop.opts.modalClassSelect);
+			this.logMsg('hide modal');
+			$(document).unbind("keyup", this.keyUpEvent);
+			var content = modPop.popContainer.children();
 			if (content && modPop.transitionOut) {
-				modPop.transitionOut(modPop, content)
+				modPop.transitionOut(content)
 			}
+			modPop.hideBackground(modPop.opts.delayBackgroundAnimation);
+		}
+
+		this.getContainer = function() {
+			if (!modPop.popContainer) {
+				this.logMsg('create modal');
+				modPop.popContainer = $('<div/>', {class: modPop.opts.modalClass}).appendTo(modPop.opts.appendSelector);
+			}
+			return $(modPop.popContainer);
 		}
 
 		this.ModalContent = function(element) {
@@ -118,43 +242,69 @@
 			}	
 		}
 
+		this.keyUpEvent = function(e) {
+			modPop.logMsg("Key Up");
+			var KEYCODE_ESC = 27;
+			if (e.keyCode == KEYCODE_ESC) { modPop.hideModal(); }  
+		}
+
 		this.showModal = function(element) {
-			var content = this.ModalContent(element);
-			if (content) {
-				$('.' + modPop.opts.modalClassSelect).removeClass(modPop.opts.modalClassSelect); //So only the active modal has the class.  This helps with closing/animating the correct element.
-				content.addClass(modPop.opts.modalClassSelect);
+			if (!this.contents) {
+				this.contents = this.ModalContent(element);
+			}
+			var popContainer = this.getContainer()
+			if (this.contents) {
+				var content = this.contents;
+				popContainer.empty();
+				popContainer.append(content);
+				content.css('display', 'block')
 
 				if (!modPop.opts.modal) {
 					content.click(function(e) {
-						modPop.hideModal(this);
+						e.stopPropagation();
 					})
+					popContainer.click(function(e) {
+						e.stopPropagation();
+						modPop.hideModal();
+					})
+					var KEYCODE_ESC = 27;
+					$(document).keyup(modPop.keyUpEvent);
 				}
-				if (modPop.opts.debug) {window.console && console.log('show modal')}
+				this.logMsg('show modal');
+
+				this.showBackground();
 
 				if (modPop.transitionIn) {
-					modPop.transitionIn(modPop, content)
+					modPop.transitionIn(content, modPop.opts.delayBackgroundAnimation);
 				}
 
 				$(content).find(this.opts.closeSelector).each(function(index, ele) {
-					if (!$(this).data('clickDefined')) {
-						$(this).data('clickDefined', true);
+					if (!$(this).data('sfclickDefined')) {
+						$(this).data('sfclickDefined', true);
 						$(this).click(function(e) {
 							modPop.hideModal();
 						})
 					}
-					
-
 				})
-
-
 			}
 		}
+
+		this.triggerEvent = function(eventName) {
+			if (this.eventObject) {
+				this.eventObject.trigger(eventName);
+			}
+		}
+
+		this.logMsg = function(message) {
+			if (modPop.opts.debug) {window.console && console.log(message)}
+		}
+
 	}
  
 	$.fn.setupModal = function(options){
-		var modPop = new stepframeModal(options);
-
 		return this.each(function(){
+			var modPop = new stepframeModal(options);
+			modPop.eventObject = $(this);
 			$(this).click(function(e) {
 				modPop.showModal(this);
 			})
@@ -169,29 +319,5 @@
 		});
 	}
 
-	var sffadeInEffect = function(modPop, content) {
-		content.fadeIn(modPop.opts.transitionInTime);
-	}
-
-	var sfslideDownEffect = function(modPop, content) {
-		content.css('top', -1 * content.height() + 'px').show();
-		content.animate({'top': 0}, modPop.opts.transitionInTime);
-	}
- 
-	var sffadeOutEffect = function(modPop, content) {
-		content.fadeOut(modPop.opts.transitionOutTime);
-	}
-
-	var sfslideUpEffect = function(modPop, content) {
-		content.animate({'top': -1.5 * content.height()}, modPop.opts.transitionOutTime);
-	}
-
-	var sfshowInEffect = function(modPop, content) {
-		content.show();
-	}
-
-	var sfshowOutEffect = function(modPop, content) {
-		content.hide();
-	}
 
 })(jQuery);

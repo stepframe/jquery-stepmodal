@@ -26,70 +26,68 @@
     -ms-text-size-adjust: 100%;
   }
   .header {
-  	font-size:150%;
-  	margin-bottom: 1em;
-  	padding: .5em;
+    font-size:150%;
+    margin-bottom: 1em;
+    padding: .5em;
   }
   .button {
-  	display: inline-block;
-  	padding: 1em 1.5em;
-  	background-color: #E24813;
-  	float: left;
-  	margin-right: 2em;
-  	text-decoration: none;
-  	color: white;
+    display: inline-block;
+    padding: 1em 1.5em;
+    background-color: #E24813;
+    float: left;
+    margin-right: 2em;
+    text-decoration: none;
+    color: white;
   }
   .button:hover {
-  	background-color: #BE4813;
+    background-color: #BE4813;
   }
 
-  .popup {
-	background: none repeat scroll 0 0 rgba(0, 0, 0, 0.8);
-	display: none;
-	height: 100%;
-	left: 0;
-	/*opacity: 0;*/
-	position: fixed;
-	top: 0;
-	width: 100%;
-	z-index: 999;
-	vertical-align: middle;
+  .stepModal {
+  background: none repeat scroll 0 0 rgba(0, 0, 0, 0.8);
+  display: none;
+  height: 100%;
+  left: 0;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 999;
+  vertical-align: middle;
+  text-align: center;
+  padding-top: 5%;
   }
 
   .popup-container {
-	display: block;
-	margin: 0 auto;
-	padding: 24px;
-	text-align: center;
-	text-align: center;
+    display:none;
+  position:relative;
+
   }
 
-
   .popup-content {
-	padding: 2em;
-	background-color: #fff;
-	text-align: left;
-	display: inline-block;
-	position: relative;
-	min-width: 50%;
-	min-height: 200px;
+  padding: 2em;
+  background-color: #fff;
+  text-align: left;
+  display: inline-block;
+  position: relative;
+  min-width: 50%;
+  min-height: 200px;
   }
 
   .popup-close {
-	background: none repeat scroll 0 0 #fff;
-	cursor: pointer;
-	display: block;
-	font-size: 150%;
-	line-height: 1.33333em;
-	width: 1.3333em;
-	height: 1.3333em;
-	line-height: 130%;
-	position: absolute;
-	right: 0;
-	text-align: center;
-	top: 0;
-	z-index: 2;
-	color: #222222;
+  background: none repeat scroll 0 0 #fff;
+  cursor: pointer;
+  display: block;
+  font-size: 150%;
+  line-height: 1.33333em;
+  width: 1.3333em;
+  height: 1.3333em;
+  line-height: 130%;
+  position: absolute;
+  right: 0;
+  text-align: center;
+  top: 0;
+  z-index: 2;
+  color: #222222;
   }
 
   </style>
@@ -99,53 +97,88 @@
 
 <body>
 
-  	<div class="header">
-		Modal Demo</a>
-  	</div>
-  	<div class="body">
+    <div class="header">
+    sfModal Demo<br><br>
+    stepframeModal Demo<br><br>
+    stepModal Demo<br><br>
+        chidModal Demo<br><br>
+
+    </div>
+    <div class="body">
 
 
-	<div class="block">
-		<a href="#testMsg" class="button modal-popup">Test item 1</a>
-	</div>
+  <div class="block">
+    <a href="#testMsg" class="button modal-popup">Test item 1</a>
+  </div>
 
-	<div class="block">
-		<a href="#mainVideoMsg" class="button modal-popup-type2">Test item 2</a>
-	</div>  
+  <div class="block">
+    <a href="#mainVideoMsg" class="button modal-popup">Test item 2</a>
+  </div>  
   
 
   </div>
+<br>
+<br>
+<br>
+<br>
+<br>
 
-
-<div id="mainVideoMsg" class="popup">
-  <div class="popup-container">
-	<div class="popup-content">
-	  <video id="video-test" preload="none" controls poster="videos/josh-mandel.png" >
-		<source src="videos/josh-mandel.mp4" type="video/mp4">
-	  </video>
-	  <div class="popup-close js-popup-close modal-close">X</div>
+  <div id="mainVideoMsg" class="popup-container">
+  <div class="popup-content">
+    <video id="video-test" preload="none" controls  >
+    <source src="http://stepframesamplevideos.s3.amazonaws.com/Landscape-comp.mp4" type="video/mp4">
+    </video>
+    <div class="popup-close js-popup-close modal-close">X</div>
    </div>
   </div>
-</div>
 
 
-<div id="testMsg" class="popup">
-  <div class="popup-container">
-	<div class="popup-content">
-	  <span class="message">Hi Nancy</span>
-	  <div class="popup-close js-popup-close modal-close">X</div>
+
+  <div id="testMsg" class="popup-container">
+  <div class="popup-content">
+    <span class="message">Hi Nancy</span>
+    <div class="popup-close js-popup-close modal-close">X</div>
    </div>
   </div>
-</div>
 
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
 <script src="jquery.stepframemodal.js"></script>
 <script type="text/javascript">
   $(document).ready(function(e) {
-	$('.modal-popup').setupModal({id: 'popMod1'});
-	$('.modal-popup-type2').setupModal({id: 'popMod2', modal: false, transition:'slideDown'});
-	//$('.modal-popup').setupModal({modal:false, transition: function() {alert('show me');}});
+  $('.modal-popup').setupModal({debug: true, modal: false, onOpen: alertOpen, onClose: alertClose});
+  //$('.modal-popup-type2').setupModal({modal: false});
+  /*$('.modal-popup').setupModal({modal:false, transition: [
+    function(content) {
+      $(content).css('left',-1 * $(content).width() -100)
+      setTimeout(function() {
+        $(content).animate({'left':0}, 'slow')
+      }, 100)
+    },
+    function(content) {
+      $(content).animate({'left':-1 * $(content).width() -100}, 'fast')
+    }
+  ]});*/
 
+  function alertClose(modalContents) {
+    $(modalContents).find('video').each(function(index, val) {
+      $(this)[0].pause();
+    })
+  }
+
+  function alertOpen(modalContents) {
+    $(modalContents).find('video').each(function(index, val) {
+      $(this)[0].play();
+    })
+  }
+
+    /*$('.modal-popup').on("sfModalClose", function(ev) {
+      alert('closed!')
+    })
+
+    $('.modal-popup').on("sfModalOpen", function(ev) {
+      alert('Open!')
+    })
+  */
   })
 </script>
 
