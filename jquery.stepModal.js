@@ -45,8 +45,216 @@ extend to dialog - title, content, and class, button options
 
 */
 
-(function($){
-	var stepModal = function(options) {
+
+// the semi-colon before the function invocation is a safety
+// net against concatenated scripts and/or other plugins
+// that are not closed properly.
+;(function ( $, window, document, undefined ) {
+
+	// Create the defaults once
+	var pluginName = "stepModal",
+		defaults = {
+			debug: false,
+			transition: 'fade',
+			transitionIn: 'fade',
+			transitionOut: 'fade',
+			closeSelector: ".modal-close",
+			transitionInTime: 'slow',
+			transitionOutTime: 'fast',
+			dataAttribute: 'modaltarget',
+			modal: true,
+			modalClass: 'stepModal',
+			appendSelector: 'body',
+			backgroundTransitionSpeed: 'fast',
+			contentAnimationDelay: 250,
+			delayBackgroundAnimation: true,
+			onOpen: false,
+			onClose: false
+		};
+
+
+
+	function Plugin( element, options, contents ) {
+		var modPop = this;
+		this.eventObject = $(element);
+		this.popContainer = false;
+		this.contents = false;
+		if (contents) {this.contents = $(contents);}
+
+		this.setupTransitions();
+
+		this.opts = {}
+		
+		if (options) {
+			if (options.transition && !options.transitionIn) {options.transitionIn = options.transition;}
+			if (options.transition && !options.transitionOut) {options.transitionOut = options.transition;}
+			if (options.transitionIn && !options.transitionOut) {options.transitionOut = options.transitionIn;}
+			/*for (var op in options) {
+				modPop.opts[op] = options[op];
+			}*/
+		}
+		this.opts = $.extend( {}, defaults, options) ;
+
+
+
+		if (this.opts.transition && typeof(this.opts.transition) == "object" && this.opts.transition.length == 2) {
+			this.opts.transitionIn = this.opts.transition[0];
+			this.opts.transitionOut = this.opts.transition[1];
+		} 
+
+		if (this.opts.transitionIn && typeof(this.opts.transitionIn) == "function") {
+			this.transitionIn = this.opts.transitionIn;
+		} else {
+			this.transitionIn = this.transitionsIn[this.opts.transitionIn];	
+		}
+		if (this.transitionIn == undefined) {this.transitionIn = this.defaultTransitionIn;}
+
+		if (this.opts.transitionOut && typeof(this.opts.transitionOut) == "function") {
+			this.transitionOut = this.opts.transitionOut;
+		} else {
+			this.transitionOut = this.transitionsOut[this.opts.transitionOut];
+		}
+		if (this.transitionOut == undefined) {this.transitionOut = this.defaultTransitionOut;}
+
+		this.init();
+
+
+		this.showBackground = function() {
+			modPop.popContainer.fadeIn(modPop.opts.backgroundTransitionSpeed, function() {if (modPop.opts.onOpen) {modPop.opts.onOpen(modPop.contents);} modPop.triggerEvent("sfModalOpen");});
+		}
+
+		this.hideBackground = function(delay) {
+			var delayTime = modPop.opts.contentAnimationDelay;
+			if (!delay) {
+				delayTime = 0;
+			} 
+			
+			setTimeout(function(){
+				modPop.popContainer.fadeOut(modPop.opts.backgroundTransitionSpeed);
+				if (modPop.opts.onClose) {modPop.opts.onClose(modPop.contents);} 
+				modPop.triggerEvent("sfModalClose");
+			}, delayTime)
+
+		}
+
+		this.hideModal = function() {
+			this.logMsg('hide modal');
+			$(document).unbind("keyup", this.keyUpEvent);
+			var content = modPop.contents;
+			if (content && modPop.transitionOut) {
+				modPop.transitionOut(content)
+			}
+			modPop.hideBackground(modPop.opts.delayBackgroundAnimation);
+		}
+
+		this.getContainer = function() {
+			if (!modPop.popContainer) {
+				this.logMsg('create modal');
+				modPop.popContainer = $('<div/>', {class: modPop.opts.modalClass}).appendTo(modPop.opts.appendSelector);
+			}
+			return $(modPop.popContainer);
+		}
+
+		this.ModalContent = function(element) {
+			var jElement = $(element);
+			var contentTarget = false;
+			if (modPop.opts.dataAttribute) {
+				var targ = jElement.data(modPop.opts.dataAttribute);
+				if (targ && targ.length> 0) {
+					if ($(targ).length > 0) {
+						contentTarget = $(targ);
+					} else if (targ.substring(0,1) != '#' && $('#' + targ).length > 0) {
+						contentTarget = $('#' + targ);
+					}
+				}				
+			}
+
+			var href = jElement.attr('href');
+			if (href && href.length> 0) {
+				if ($(href).length > 0) {
+					contentTarget = $(href);
+				} else if (href.substring(0,1) != '#' && $('#' + href).length > 0) {
+					contentTarget = $('#' + href);
+				}
+			}	
+			if (contentTarget) {
+				if (contentTarget.closest("." + modPop.opts.modalClass).length > 0) {
+					modPop.popContainer = contentTarget.closest("." + modPop.opts.modalClass);
+				}
+			}
+			return contentTarget;
+		}
+
+		this.keyUpEvent = function(e) {
+			modPop.logMsg("Key Up");
+			var KEYCODE_ESC = 27;
+			if (e.keyCode == KEYCODE_ESC) { modPop.hideModal(); }  
+		}
+
+		this.showModal = function(element) {
+			if (!this.contents) {
+				this.contents = this.ModalContent(element);
+			}
+			var popContainer = this.getContainer()
+			if (this.contents) {
+				var content = this.contents;
+				//popContainer.empty();
+				popContainer.append(content);
+				content.css('display', 'block')
+
+				if (!modPop.opts.modal) {
+					content.click(function(e) {
+						e.stopPropagation();
+					})
+					popContainer.click(function(e) {
+						e.stopPropagation();
+						modPop.hideModal();
+					})
+					var KEYCODE_ESC = 27;
+					$(document).keyup(modPop.keyUpEvent);
+				}
+				this.logMsg('show modal');
+
+				this.showBackground();
+
+				if (modPop.transitionIn) {
+					modPop.transitionIn(content, modPop.opts.delayBackgroundAnimation);
+				}
+
+				$(content).find(this.opts.closeSelector).each(function(index, ele) {
+					if (!$(this).data('sfclickDefined')) {
+						$(this).data('sfclickDefined', true);
+						$(this).click(function(e) {
+							modPop.hideModal();
+						})
+					}
+				})
+			}
+		}
+
+		this.triggerEvent = function(eventName) {
+			if (this.eventObject) {
+				this.eventObject.trigger(eventName);
+			}
+		}
+
+		this.logMsg = function(message) {
+			if (modPop.opts.debug) {window.console && console.log(message)}
+		}
+
+	}
+ 
+
+	Plugin.prototype.init = function() {
+		var plugin = this;
+		this.eventObject.click(function(e) {
+			e.preventDefault();
+			plugin.showModal(this);
+		})
+	} 
+
+	Plugin.prototype.setupTransitions = function() {
+		var modPop = this;
 		var sffadeInEffect = function(content, delay) {
 			content.hide();
 			var delayTime = modPop.opts.contentAnimationDelay;
@@ -59,7 +267,6 @@ extend to dialog - title, content, and class, button options
 
 			
 		}
-
 		var sfslideDownEffect = function(content) {
 			var contentPos = content.css('position');
 			if (!contentPos || contentPos == "static") {content.css('position', 'relative')}
@@ -120,11 +327,9 @@ extend to dialog - title, content, and class, button options
 			}, delayTime)
 		}
 
+		this.defaultTransitionIn = sffadeInEffect;
+		this.defaultTransitionOut = sffadeOutEffect;
 
-		var modPop = this;
-		this.eventObject = false;
-		this.popContainer = false;
-		this.contents = false;
 		this.transitionsIn = {
 			'fade': sffadeInEffect,
 			'slideDown': sfslideDownEffect,
@@ -135,173 +340,19 @@ extend to dialog - title, content, and class, button options
 			'slideDown': sfslideUpEffect,
 			'show': sfshowOutEffect
 		}
-
-		this.opts = {
-			debug: false,
-			transition: 'fade',
-			transitionIn: 'fade',
-			transitionOut: 'fade',
-			closeSelector: ".modal-close",
-			transitionInTime: 'slow',
-			transitionOutTime: 'fast',
-			dataAttribute: 'modaltarget',
-			modal: true,
-			modalClass: 'stepModal',
-			appendSelector: 'body',
-			backgroundTransitionSpeed: 'fast',
-			contentAnimationDelay: 250,
-			delayBackgroundAnimation: true,
-			onOpen: false,
-			onClose: false
-		}
-		
-		if (options) {
-			if (options.transition && !options.transitionIn) {options.transitionIn = options.transition;}
-			if (options.transition && !options.transitionOut) {options.transitionOut = options.transition;}
-			if (options.transitionIn && !options.transitionOut) {options.transitionOut = options.transitionIn;}
-			for (var op in options) {
-				modPop.opts[op] = options[op];
-			}
-		}
-
-		if (this.opts.transition && typeof(this.opts.transition) == "object" && this.opts.transition.length == 2) {
-			this.opts.transitionIn = this.opts.transition[0];
-			this.opts.transitionOut = this.opts.transition[1];
-		} 
-
-		if (this.opts.transitionIn && typeof(this.opts.transitionIn) == "function") {
-			this.transitionIn = this.opts.transitionIn;
-		} else {
-			this.transitionIn = this.transitionsIn[this.opts.transitionIn];	
-		}
-		if (this.transitionIn == undefined) {this.transitionIn = sffadeInEffect;}
-
-		if (this.opts.transitionOut && typeof(this.opts.transitionOut) == "function") {
-			this.transitionOut = this.opts.transitionOut;
-		} else {
-			this.transitionOut = this.transitionsOut[this.opts.transitionOut];
-		}
-		if (this.transitionOut == undefined) {this.transitionOut = sffadeOutEffect;}
-
-		this.showBackground = function() {
-			modPop.popContainer.fadeIn(modPop.opts.backgroundTransitionSpeed, function() {if (modPop.opts.onOpen) {modPop.opts.onOpen(modPop.contents);} modPop.triggerEvent("sfModalOpen");});
-		}
-
-		this.hideBackground = function(delay) {
-			var delayTime = modPop.opts.contentAnimationDelay;
-			if (!delay) {
-				delayTime = 0;
-			} 
-			
-			setTimeout(function(){
-				modPop.popContainer.fadeOut(modPop.opts.backgroundTransitionSpeed);
-				if (modPop.opts.onClose) {modPop.opts.onClose(modPop.contents);} 
-				modPop.triggerEvent("sfModalClose");
-			}, delayTime)
-
-		}
-
-		this.hideModal = function() {
-			this.logMsg('hide modal');
-			$(document).unbind("keyup", this.keyUpEvent);
-			var content = modPop.popContainer.children();
-			if (content && modPop.transitionOut) {
-				modPop.transitionOut(content)
-			}
-			modPop.hideBackground(modPop.opts.delayBackgroundAnimation);
-		}
-
-		this.getContainer = function() {
-			if (!modPop.popContainer) {
-				this.logMsg('create modal');
-				modPop.popContainer = $('<div/>', {class: modPop.opts.modalClass}).appendTo(modPop.opts.appendSelector);
-			}
-			return $(modPop.popContainer);
-		}
-
-		this.ModalContent = function(element) {
-			var jElement = $(element);
-			if (modPop.opts.dataAttribute) {
-				var targ = jElement.data(modPop.opts.dataAttribute);
-				if (targ && targ.length> 0) {
-					if ($(targ).length > 0) {
-						return $(targ);
-					} else if (targ.substring(0,1) != '#' && $('#' + targ).length > 0) {
-						return $('#' + targ);
-					}
-				}				
-			}
-
-			var href = jElement.attr('href');
-			if (href && href.length> 0) {
-				if ($(href).length > 0) {
-					return $(href);
-				} else if (href.substring(0,1) != '#' && $('#' + href).length > 0) {
-					return $('#' + href);
-				}
-			}	
-		}
-
-		this.keyUpEvent = function(e) {
-			modPop.logMsg("Key Up");
-			var KEYCODE_ESC = 27;
-			if (e.keyCode == KEYCODE_ESC) { modPop.hideModal(); }  
-		}
-
-		this.showModal = function(element) {
-			if (!this.contents) {
-				this.contents = this.ModalContent(element);
-			}
-			var popContainer = this.getContainer()
-			if (this.contents) {
-				var content = this.contents;
-				popContainer.empty();
-				popContainer.append(content);
-				content.css('display', 'block')
-
-				if (!modPop.opts.modal) {
-					content.click(function(e) {
-						e.stopPropagation();
-					})
-					popContainer.click(function(e) {
-						e.stopPropagation();
-						modPop.hideModal();
-					})
-					var KEYCODE_ESC = 27;
-					$(document).keyup(modPop.keyUpEvent);
-				}
-				this.logMsg('show modal');
-
-				this.showBackground();
-
-				if (modPop.transitionIn) {
-					modPop.transitionIn(content, modPop.opts.delayBackgroundAnimation);
-				}
-
-				$(content).find(this.opts.closeSelector).each(function(index, ele) {
-					if (!$(this).data('sfclickDefined')) {
-						$(this).data('sfclickDefined', true);
-						$(this).click(function(e) {
-							modPop.hideModal();
-						})
-					}
-				})
-			}
-		}
-
-		this.triggerEvent = function(eventName) {
-			if (this.eventObject) {
-				this.eventObject.trigger(eventName);
-			}
-		}
-
-		this.logMsg = function(message) {
-			if (modPop.opts.debug) {window.console && console.log(message)}
-		}
-
 	}
- 
-	$.fn.setupStepModal = function(options){
+
+
+	$.fn[pluginName] = function(options){
+		return this.each(function(){
+			if ( !$.data(this, "plugin_" + pluginName )) {
+				$.data( this, "plugin_" + pluginName,
+				new Plugin( this, options ));
+			}
+		});
+	}
+
+	/*$.fn.setupStepModal = function(options){
 		return this.each(function(){
 			var modPop = new stepModal(options);
 			modPop.eventObject = $(this);
@@ -310,7 +361,7 @@ extend to dialog - title, content, and class, button options
 			})
 		});
 	}
- 
+
 	$.fn.showStepModal = function(options){
 		var modPop = new stepModal(options);
 
@@ -320,4 +371,18 @@ extend to dialog - title, content, and class, button options
 	}
 
 
-})( jQuery);
+*/ 
+	$.fn.showStepModal = function(options){
+
+		return this.each(function(){		
+			if ( !$.data(this, "plugin_" + pluginName )) {
+				$.data( this, "plugin_" + pluginName,
+				new Plugin( this, options, this ));
+			}
+			var plugin = $.data(this, "plugin_" + pluginName );
+			plugin.showModal(this);
+		});
+	}
+
+
+})( jQuery, window, document );
