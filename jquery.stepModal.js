@@ -150,7 +150,7 @@ extend to dialog - title, content, and class, button options
 		this.getContainer = function() {
 			if (!modPop.popContainer) {
 				this.logMsg('create modal');
-				modPop.popContainer = $('<div/>', {class: modPop.opts.modalClass}).appendTo(modPop.opts.appendSelector);
+				modPop.popContainer = $('<div/>', {'class': modPop.opts.modalClass}).appendTo(modPop.opts.appendSelector);
 			}
 			return $(modPop.popContainer);
 		}
